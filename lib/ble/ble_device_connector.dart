@@ -9,6 +9,7 @@ import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:notifications/notifications.dart';
 import 'package:quiver/iterables.dart';
 
+import '../smartwatch_status.dart';
 import '../utils.dart';
 import 'reactive_state.dart';
 
@@ -20,6 +21,8 @@ class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
 
   String _deviceId = '00:00:00:00:00:00';
   int mtuSize = 20;
+
+  SmartWatchStatus smartWatchStatus = SmartWatchStatus();
 
   @override
   Stream<ConnectionStateUpdate> get state => _deviceConnectionController.stream;
@@ -114,15 +117,35 @@ class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
           int batteryStatus = byteData.getUint8(10);
 
           service.setNotificationInfo(
-              title: "Status",
-              content:
-                  "Battery $battery% ${batteryVolt.toStringAsFixed(3)}v [$batteryStatus]");
+              title: "Status", content: "Battery $battery%");
+
+          /*service.sendData({
+            "action": "battery",
+            'battery': battery,
+            'batteryVolt': batteryVolt,
+            'batteryStatus': batteryStatus
+          });*/
+
+          smartWatchStatus.deviceBattery = battery;
+          smartWatchStatus.deviceBatteryVolt = batteryVolt;
+          smartWatchStatus.deviceBatteryStatus = batteryStatus;
+          sendStatus("connected");
           break;
         default:
           service.setNotificationInfo(
               title: "BLE", content: "Data : " + data.toString());
       }
     }
+  }
+
+  void sendStatus(String status) {
+    FlutterBackgroundService().sendData({
+      "action": "device_state",
+      "state": status,
+      "battery": smartWatchStatus.deviceBattery.toString(),
+      "battery_voltage": smartWatchStatus.deviceBatteryVolt.toStringAsFixed(3),
+      "battery_status": smartWatchStatus.deviceBatteryStatus.toString(),
+    });
   }
 
   void listenForData() {
@@ -188,6 +211,7 @@ class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
   bool shouldIgnoreSource(String packageName) {
     if (packageName == "android" ||
         packageName == "com.android.systemui" ||
+        packageName == "com.google.android.googlequicksearchbox" ||
         packageName == "com.android.dialer" ||
         packageName == "com.google.android.dialer" ||
         packageName == "com.cyanogenmod.eleven") {

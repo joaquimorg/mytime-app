@@ -128,6 +128,9 @@ class _DeviceListState extends State<_DeviceList> {
                           _prefs.then((prefs) {
                             prefs.setString("deviceId", device.id);
                           });
+                          _prefs.then((prefs) {
+                            prefs.setString("deviceName", device.name);
+                          });
                           FlutterBackgroundService().sendData(
                               {"action": "connect", 'deviceId': device.id});
                           Navigator.pop(context);

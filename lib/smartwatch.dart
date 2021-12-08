@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'device/device_list.dart';
-import 'main.dart';
 
 class SmartWatchScreen extends StatefulWidget {
   const SmartWatchScreen({
@@ -15,8 +14,12 @@ class SmartWatchScreen extends StatefulWidget {
 
 class _SmartWatchScreenState extends State<SmartWatchScreen> {
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
-  String _deviceId = '00:00:00:00:00:00';
-  String text = "Stop Service";
+  String deviceId = '00:00:00:00:00:00';
+  String deviceName = '-';
+  String serviceStatus = "Service stoped";
+
+  String connectionState = "Disconnected";
+  bool isConnected = false;
 
   @override
   void initState() {
@@ -28,75 +31,122 @@ class _SmartWatchScreenState extends State<SmartWatchScreen> {
     final SharedPreferences prefs = await _prefs;
     var isRunning = await FlutterBackgroundService().isServiceRunning();
     setState(() {
-      if (isRunning) {
-        text = "Stop Service";
-      } else {
-        text = "Start Service";
-      }
-      _deviceId = prefs.getString('deviceId') ?? '00:00:00:00:00:00';
+      deviceId = prefs.getString('deviceId') ?? '00:00:00:00:00:00';
+      deviceName = prefs.getString('deviceName') ?? '-';
+      serviceStatus = isRunning ? "Service is running" : "Service stoped";
     });
+
+    /*final service = FlutterBackgroundService();
+    service.sendData({"action": "get_status"});*/
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_deviceId.endsWith('00:00:00:00:00:00')) {
+    if (deviceId.endsWith('00:00:00:00:00:00')) {
       return Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        ElevatedButton(
-            child: const Text("Select Smartwatch"), onPressed: selectDevice),
+        ElevatedButton.icon(
+            label: const Text("Select Smartwatch"),
+            icon: const Icon(Icons.watch_outlined),
+            style: ButtonStyle(
+                padding: MaterialStateProperty.all(const EdgeInsets.all(10)),
+                textStyle:
+                    MaterialStateProperty.all(const TextStyle(fontSize: 18))),
+            onPressed: selectDevice),
       ]);
     } else {
-      return Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Text(_deviceId),
-        const SizedBox(height: 20),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ElevatedButton(
-                child: const Text("Remove device"), onPressed: removeDevice),
-            const SizedBox(
-              width: 10,
-            ),
-            ElevatedButton(
-              child: Text(text),
-              onPressed: () async {
-                var isRunning =
-                    await FlutterBackgroundService().isServiceRunning();
-                if (isRunning) {
-                  FlutterBackgroundService().sendData(
-                    {"action": "stopService"},
-                  );
-                } else {
-                  FlutterBackgroundService.initialize(onStart);
-                }
+      return StreamBuilder<Map<String, dynamic>?>(
+          stream: FlutterBackgroundService().onDataReceived,
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              FlutterBackgroundService().sendData({"action": "get_status"});
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
+            }
 
-                setState(() {
-                  if (!isRunning) {
-                    text = 'Stop Service';
-                  } else {
-                    text = 'Start Service';
-                  }
-                });
-              },
-            ),
-          ],
-        ),
-        const SizedBox(height: 20),
-        const Divider(
-          color: Colors.blueGrey,
-        ),
-        const SizedBox(height: 20),
-        ElevatedButton(
-            child: const Text("Send Time"),
-            onPressed: () async {
-              FlutterBackgroundService().sendData({"action": "send_time"});
-            }),
-        ElevatedButton(
-            child: const Text("Test Notification"),
-            onPressed: () async {
-              FlutterBackgroundService()
-                  .sendData({"action": "send_debug_notification"});
-            }),
-      ]);
+            final data = snapshot.data!;
+
+            if (data["action"] == "device_state") {
+              String state = data["state"];
+              if (state == "connected") {
+                connectionState = "Connected to $deviceName";
+                isConnected = true;
+              } else if (state == "connecting") {
+                connectionState = "Connecting to $deviceName";
+                isConnected = false;
+              } else if (state == "disconnecting") {
+                connectionState = "Disconnecting from $deviceName";
+                isConnected = false;
+              } else {
+                connectionState = "Disconnected";
+                isConnected = false;
+              }
+            }
+
+            return Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    connectionState,
+                    style: Theme.of(context).textTheme.headline5,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 30),
+                  Text(deviceId,
+                      style: const TextStyle(
+                        fontSize: 22,
+                        color: Colors.greenAccent,
+                      )),
+                  const SizedBox(height: 40),
+                  Text(serviceStatus),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.delete_forever),
+                        label: const Text("Remove device"),
+                        style: ButtonStyle(
+                          backgroundColor:
+                              MaterialStateProperty.all(Colors.red),
+                        ),
+                        onPressed: removeDevice,
+                      ),
+                      const SizedBox(
+                        width: 10,
+                      ),
+                      ElevatedButton.icon(
+                          icon: const Icon(Icons.bluetooth_disabled),
+                          label: const Text("Disconnect"),
+                          onPressed: isConnected ? disconnectDevice : null),
+                      const SizedBox(
+                        width: 10,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  const Divider(
+                    color: Colors.blueGrey,
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                      child: const Text("Send Time"),
+                      onPressed: isConnected
+                          ? () async {
+                              FlutterBackgroundService()
+                                  .sendData({"action": "send_time"});
+                            }
+                          : null),
+                  ElevatedButton(
+                      child: const Text("Test Notification"),
+                      onPressed: isConnected
+                          ? () async {
+                              FlutterBackgroundService().sendData(
+                                  {"action": "send_debug_notification"});
+                            }
+                          : null),
+                ]);
+          });
     }
   }
 
@@ -109,8 +159,13 @@ class _SmartWatchScreenState extends State<SmartWatchScreen> {
   void removeDevice() {
     _prefs.then((prefs) async {
       prefs.setString("deviceId", '00:00:00:00:00:00');
+      prefs.setString("deviceName", '-');
       _setStatus();
       FlutterBackgroundService().sendData({"action": "disconnect"});
     });
+  }
+
+  void disconnectDevice() {
+    FlutterBackgroundService().sendData({"action": "disconnect"});
   }
 }

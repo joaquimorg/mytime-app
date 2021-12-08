@@ -1,5 +1,5 @@
 import 'dart:async';
-
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
@@ -11,6 +11,9 @@ import 'main_bottom_nav_bar.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+
+  SystemChrome.setPreferredOrientations(
+      [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
 
   FlutterBackgroundService.initialize(onStart);
 
@@ -49,7 +52,7 @@ void onStart() {
   final BleDeviceConnector deviceConnector =
       BleDeviceConnector(ble: flutterReactiveBle);
 
-  DeviceConnectionState connectionState = DeviceConnectionState.connecting;
+  DeviceConnectionState connectionState = DeviceConnectionState.disconnected;
 
   StreamSubscription<NotificationEvent>? _subscription;
 
@@ -62,8 +65,8 @@ void onStart() {
       service.stopBackgroundService();
       //flutterReactiveBle.deinitialize();
       if (connectionState == DeviceConnectionState.connected) {
-        await deviceConnector.disconnect();
-        service.setNotificationInfo(title: "BLE", content: "Disconnected");
+        deviceConnector.disconnect();
+        //service.setNotificationInfo(title: "BLE", content: "Disconnected");
       }
     }
 
@@ -71,8 +74,8 @@ void onStart() {
     if (event["action"] == "disconnect") {
       //flutterReactiveBle.deinitialize();
       if (connectionState == DeviceConnectionState.connected) {
-        await deviceConnector.disconnect();
-        service.setNotificationInfo(title: "BLE", content: "Disconnected");
+        deviceConnector.disconnect();
+        //service.setNotificationInfo(title: "BLE", content: "Disconnected");
       }
     }
 
@@ -94,6 +97,10 @@ void onStart() {
     if (event["action"] == "send_debug_notification") {
       deviceConnector.sendDebugNotification();
     }
+
+    if (event["action"] == "get_status") {
+      deviceConnector.sendStatus(connectionState.name);
+    }
   });
 
   // bring to foreground
@@ -111,12 +118,11 @@ void onStart() {
     if (connectionState == DeviceConnectionState.disconnected) {
       service.setNotificationInfo(
           title: "BLE", content: "Retrying to connect...");
-      deviceConnector
-          .connect('00:00:00:00:00:00')
-          .then((_) {})
-          .timeout(const Duration(seconds: 20), onTimeout: () {
+      deviceConnector.connect('00:00:00:00:00:00').then((_) {})
+          /*.timeout(const Duration(seconds: 20), onTimeout: () {
         service.setNotificationInfo(title: "BLE", content: "Failed to connect");
-      });
+      })*/
+          ;
     }
   });
 
@@ -131,6 +137,11 @@ void onStart() {
     } else if (state.connectionState == DeviceConnectionState.disconnected) {
       service.setNotificationInfo(title: "BLE", content: "Disconnected");
     }
+
+    service.sendData({
+      "action": "device_connection_state",
+      "state": state.connectionState.name
+    });
   });
 
   Notifications _notifications = Notifications();

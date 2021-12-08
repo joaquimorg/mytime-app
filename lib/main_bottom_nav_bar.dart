@@ -118,10 +118,10 @@ class _MainBottomNavBarState extends State<MainBottomNavBar> {
           content: "Please select a device",
         );
       } else {
-        service.setNotificationInfo(
+        /*service.setNotificationInfo(
           title: "MY-Time",
           content: "Connected to device : $deviceId",
-        );
+        );*/
         service.sendData({"action": "connect", 'deviceId': deviceId});
       }
     });

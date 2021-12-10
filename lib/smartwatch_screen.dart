@@ -42,6 +42,31 @@ class _SmartWatchScreenState extends State<SmartWatchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    return CustomScrollView(slivers: [
+      SliverFillRemaining(
+          hasScrollBody: false,
+          fillOverscroll: false,
+          child: Column(
+            children: <Widget>[
+              Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Text(
+                  connectionState == "Disconnected"
+                      ? "MY-Time"
+                      : connectionState,
+                  style: Theme.of(context).textTheme.headline5,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              Expanded(
+                child: smartWatchInfo(),
+              ),
+            ],
+          ))
+    ]);
+  }
+
+  Widget smartWatchInfo() {
     if (deviceId.endsWith('00:00:00:00:00:00')) {
       return Column(mainAxisAlignment: MainAxisAlignment.center, children: [
         ElevatedButton.icon(
@@ -69,13 +94,13 @@ class _SmartWatchScreenState extends State<SmartWatchScreen> {
             if (data["action"] == "device_state") {
               String state = data["state"];
               if (state == "connected") {
-                connectionState = "Connected to $deviceName";
+                connectionState = "Connected to\n$deviceName";
                 isConnected = true;
               } else if (state == "connecting") {
-                connectionState = "Connecting to $deviceName";
+                connectionState = "Connecting to\n$deviceName";
                 isConnected = false;
               } else if (state == "disconnecting") {
-                connectionState = "Disconnecting from $deviceName";
+                connectionState = "Disconnecting from\n$deviceName";
                 isConnected = false;
               } else {
                 connectionState = "Disconnected";
@@ -86,12 +111,12 @@ class _SmartWatchScreenState extends State<SmartWatchScreen> {
             return Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
+                  /*Text(
                     connectionState,
                     style: Theme.of(context).textTheme.headline5,
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 30),*/
                   Text(deviceId,
                       style: const TextStyle(
                         fontSize: 22,

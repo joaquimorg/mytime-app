@@ -101,7 +101,14 @@ void onStart() {
     if (event["action"] == "get_status") {
       deviceConnector.sendStatus(connectionState.name);
     }
+
+    if (event["action"] == "app_list") {
+      List<String> appList = List<String>.from(event['data'] as List);
+      deviceConnector.appListChanged(appList);
+    }
   });
+
+  deviceConnector.loadAppList();
 
   // bring to foreground
   service.setForegroundMode(true);

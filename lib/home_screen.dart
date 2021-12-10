@@ -41,83 +41,103 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<Map<String, dynamic>?>(
-      stream: FlutterBackgroundService().onDataReceived,
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          FlutterBackgroundService().sendData({"action": "get_status"});
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
-        }
-
-        final data = snapshot.data!;
-
-        if (data["action"] == "device_state") {
-          String state = data["state"];
-          if (state == "connected") {
-            connectionState = "Connected to $deviceName";
-            isConnected = true;
-          } else if (state == "connecting") {
-            connectionState = "Connecting to $deviceName";
-            isConnected = false;
-          } else if (state == "disconnecting") {
-            connectionState = "Disconnecting from $deviceName";
-            isConnected = false;
-          } else {
-            connectionState = "Disconnected";
-            isConnected = false;
-          }
-
-          battery = data["battery"] + '%';
-          batteryStatus = data["battery_status"] == "1"
-              ? "Unknown"
-              : data["batteryStatus"] == "2"
-                  ? "Charging"
-                  : "Discharging";
-          batteryVoltage = data["battery_voltage"] + 'v';
-        }
-
-        if (!isConnected) {
-          return Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+    return CustomScrollView(slivers: [
+      SliverFillRemaining(
+          hasScrollBody: false,
+          fillOverscroll: false,
+          child: Column(
             children: <Widget>[
-              const Icon(Icons.watch_outlined, size: 100, color: Colors.orange),
-              const SizedBox(height: 20),
-              Center(
+              Padding(
+                padding: const EdgeInsets.all(20.0),
                 child: Text(
-                  "No smartwatch connected.",
-                  style: Theme.of(context).textTheme.headline6,
-                  textAlign: TextAlign.center,
+                  'MY-Time',
+                  style: Theme.of(context).textTheme.headline4,
+                ),
+              ),
+              Expanded(
+                child: StreamBuilder<Map<String, dynamic>?>(
+                  stream: FlutterBackgroundService().onDataReceived,
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      FlutterBackgroundService()
+                          .sendData({"action": "get_status"});
+                      return const Center(
+                        child: CircularProgressIndicator(),
+                      );
+                    }
+
+                    final data = snapshot.data!;
+
+                    if (data["action"] == "device_state") {
+                      String state = data["state"];
+                      if (state == "connected") {
+                        connectionState = "Connected to $deviceName";
+                        isConnected = true;
+                      } else if (state == "connecting") {
+                        connectionState = "Connecting to $deviceName";
+                        isConnected = false;
+                      } else if (state == "disconnecting") {
+                        connectionState = "Disconnecting from $deviceName";
+                        isConnected = false;
+                      } else {
+                        connectionState = "Disconnected";
+                        isConnected = false;
+                      }
+
+                      battery = data["battery"] + '%';
+                      batteryStatus = data["battery_status"] == "1"
+                          ? "Unknown"
+                          : data["batteryStatus"] == "2"
+                              ? "Charging"
+                              : "Discharging";
+                      batteryVoltage = data["battery_voltage"] + 'v';
+                    }
+
+                    if (!isConnected) {
+                      return Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: <Widget>[
+                          const Icon(Icons.watch_outlined,
+                              size: 100, color: Colors.orange),
+                          const SizedBox(height: 20),
+                          Center(
+                            child: Text(
+                              "No smartwatch connected.",
+                              style: Theme.of(context).textTheme.headline6,
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ],
+                      );
+                    }
+                    return Column(
+                      children: [
+                        _buildStatBattery(
+                            'Battery',
+                            battery,
+                            batteryVoltage,
+                            batteryStatus,
+                            batteryStatus == "Charging"
+                                ? Icons.battery_charging_full
+                                : FontAwesomeIcons.batteryHalf,
+                            Colors.purple),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            _buildStatCard('Steps', stepCount,
+                                FontAwesomeIcons.walking, Colors.blue),
+                            _buildStatCard('Hartrate', hartRate,
+                                FontAwesomeIcons.heartbeat, Colors.green),
+                          ],
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ),
             ],
-          );
-        }
-        return Column(
-          children: [
-            _buildStatBattery(
-                'Battery',
-                battery,
-                batteryVoltage,
-                batteryStatus,
-                batteryStatus == "Charging"
-                    ? Icons.battery_charging_full
-                    : FontAwesomeIcons.batteryHalf,
-                Colors.purple),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildStatCard(
-                    'Steps', stepCount, FontAwesomeIcons.walking, Colors.blue),
-                _buildStatCard('Hartrate', hartRate, FontAwesomeIcons.heartbeat,
-                    Colors.green),
-              ],
-            ),
-          ],
-        );
-      },
-    );
+          )),
+    ]);
   }
 
   Expanded _buildStatCard(

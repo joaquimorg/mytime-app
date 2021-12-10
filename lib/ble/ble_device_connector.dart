@@ -8,6 +8,7 @@ import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:notifications/notifications.dart';
 import 'package:quiver/iterables.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../smartwatch_status.dart';
 import '../utils.dart';
@@ -15,6 +16,8 @@ import 'reactive_state.dart';
 
 class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
   BleDeviceConnector({required FlutterReactiveBle ble}) : _ble = ble;
+
+  List<String> appList = <String>[];
 
   final FlutterReactiveBle _ble;
   void _logMessage(String message) {}
@@ -208,25 +211,18 @@ class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
     sendData(0x02, notificationData.toBytes().toBytes());
   }
 
+  Future<void> loadAppList() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    appList = prefs.getStringList('applications') ?? [];
+  }
+
+  void appListChanged(List<String> newList) {
+    appList = newList;
+  }
+
   bool shouldIgnoreSource(String packageName) {
-    if (packageName == "android" ||
-        packageName == "com.android.systemui" ||
-        packageName == "com.google.android.googlequicksearchbox" ||
-        packageName == "com.android.dialer" ||
-        packageName == "com.google.android.dialer" ||
-        packageName == "com.cyanogenmod.eleven") {
-      return true;
-    }
-
-    if (packageName == "com.moez.QKSMS" ||
-        packageName == "com.android.mms" ||
-        packageName == "com.sonyericsson.conversations" ||
-        packageName == "com.android.messaging" ||
-        packageName == "org.smssecure.smssecure") {
-      return true;
-    }
-
-    return false;
+    bool appFound = appList.contains(packageName);
+    return !appFound;
   }
 }
 
@@ -510,15 +506,15 @@ class NotificationData {
 
     String body = '';
 
-    if (message != null) {
+    if (message != '') {
       body = message.toString();
     }
 
-    if (ticker != null && message == null) {
+    if (ticker != '' && message == '') {
       body = ticker.toString();
     }
 
-    if (subText != null && body == '') {
+    if (subText != '' && body == '') {
       body = subText.toString();
     }
 

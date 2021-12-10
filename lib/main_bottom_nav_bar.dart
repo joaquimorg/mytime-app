@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:mytime/apps_screen.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'home_screen.dart';
-import 'smartwatch.dart';
+import 'smartwatch_screen.dart';
 
 class MainBottomNavBar extends StatefulWidget {
   const MainBottomNavBar({Key? key}) : super(key: key);
@@ -35,6 +36,7 @@ class _MainBottomNavBarState extends State<MainBottomNavBar> {
   static const List<Widget> _pages = <Widget>[
     HomeScreen(),
     SmartWatchScreen(),
+    AppsScreen(),
   ];
 
   void _onItemTapped(int index) {
@@ -77,12 +79,10 @@ class _MainBottomNavBarState extends State<MainBottomNavBar> {
       );
     } else {
       return Scaffold(
-        appBar: AppBar(
-          title: const Text('MY-Time'),
-        ),
-        body: Center(
+        body: SafeArea(
+            child: Center(
           child: _pages.elementAt(_selectedIndex),
-        ),
+        )),
         bottomNavigationBar: BottomNavigationBar(
           elevation: 4,
           selectedFontSize: 16,
@@ -98,6 +98,10 @@ class _MainBottomNavBarState extends State<MainBottomNavBar> {
             BottomNavigationBarItem(
               icon: Icon(Icons.watch_outlined),
               label: 'Smartwatch',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.apps),
+              label: 'Apps',
             ),
           ],
           currentIndex: _selectedIndex,

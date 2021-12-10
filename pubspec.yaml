@@ -44,6 +44,7 @@ dependencies:
   flutter_background_service: ^0.1.5
   notifications: 
     path: packages/notifications
+  device_apps: ^2.1.1
 
 
 dev_dependencies:

@@ -52,11 +52,30 @@ void onStart() {
   final BleDeviceConnector deviceConnector =
       BleDeviceConnector(ble: flutterReactiveBle);
 
-  DeviceConnectionState connectionState = DeviceConnectionState.disconnected;
+  DeviceConnectionState connectionState = DeviceConnectionState.disconnecting;
 
-  StreamSubscription<NotificationEvent>? _subscription;
+  //StreamSubscription<NotificationEvent>? _subscription;
 
   Timer _reconnectTimer;
+
+  _reconnectTimer = Timer.periodic(
+      const Duration(
+        seconds: 30,
+      ), (timer) {
+    if (connectionState == DeviceConnectionState.disconnected) {
+      service.setNotificationInfo(
+          title: "BLE", content: "Retrying to connect...");
+      deviceConnector.connect('00:00:00:00:00:00').then((_) {})
+          /*.timeout(const Duration(seconds: 15), onTimeout: () {
+        service.setNotificationInfo(
+            title: "BLE", content: "Connection timeout...");
+      })*/
+          .catchError((error) {
+        service.setNotificationInfo(
+            title: "BLE", content: "Connection error...");
+      });
+    }
+  });
 
   service.onDataReceived.listen((event) async {
     // ------------------ stopService
@@ -68,6 +87,7 @@ void onStart() {
         deviceConnector.disconnect();
         //service.setNotificationInfo(title: "BLE", content: "Disconnected");
       }
+      _reconnectTimer.cancel();
     }
 
     // ------------------ disconnect
@@ -81,7 +101,7 @@ void onStart() {
 
     // ------------------ connect
     if (event["action"] == "connect") {
-      //service.setNotificationInfo(title: "Action", content: "connect");
+      service.setNotificationInfo(title: "BLE", content: "Connecting...");
       String deviceId = event["deviceId"];
 
       deviceConnector.connect(deviceId).then((_) {
@@ -113,36 +133,18 @@ void onStart() {
   // bring to foreground
   service.setForegroundMode(true);
 
-  service.setNotificationInfo(
-    title: "MY-Time",
-    content: "My-Time service is running.",
-  );
-
-  _reconnectTimer = Timer.periodic(
-      const Duration(
-        seconds: 30,
-      ), (timer) {
-    if (connectionState == DeviceConnectionState.disconnected) {
-      service.setNotificationInfo(
-          title: "BLE", content: "Retrying to connect...");
-      deviceConnector.connect('00:00:00:00:00:00').then((_) {})
-          /*.timeout(const Duration(seconds: 20), onTimeout: () {
-        service.setNotificationInfo(title: "BLE", content: "Failed to connect");
-      })*/
-          ;
-    }
-  });
-
   deviceConnector.state.listen((state) {
     connectionState = state.connectionState;
     if (state.connectionState == DeviceConnectionState.connected) {
       //_reconnectTimer.cancel();
-      service.setNotificationInfo(title: "BLE", content: "Connected");
+      service.setNotificationInfo(
+          title: "BLE", content: "Device is connected.");
       deviceConnector.setMTUSize(120);
       deviceConnector.sendTime();
       deviceConnector.listenForData();
     } else if (state.connectionState == DeviceConnectionState.disconnected) {
-      service.setNotificationInfo(title: "BLE", content: "Disconnected");
+      service.setNotificationInfo(
+          title: "BLE", content: "Device disconnected.");
     }
 
     service.sendData({
@@ -152,9 +154,14 @@ void onStart() {
   });
 
   Notifications _notifications = Notifications();
-  _subscription = _notifications.notificationStream!.listen(
+  _notifications.notificationStream!.listen(
     (NotificationEvent event) {
       deviceConnector.sendNotification(event);
     },
+  );
+
+  service.setNotificationInfo(
+    title: "MY-Time",
+    content: "BLE service is running.",
   );
 }

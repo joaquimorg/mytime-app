@@ -145,9 +145,9 @@ class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
     FlutterBackgroundService().sendData({
       "action": "device_state",
       "state": status,
-      "battery": smartWatchStatus.deviceBattery.toString(),
+      "battery": smartWatchStatus.deviceBattery,
       "battery_voltage": smartWatchStatus.deviceBatteryVolt.toStringAsFixed(3),
-      "battery_status": smartWatchStatus.deviceBatteryStatus.toString(),
+      "battery_status": smartWatchStatus.deviceBatteryStatus,
     });
   }
 

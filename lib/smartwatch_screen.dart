@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'device/device_list.dart';
+import 'main.dart';
 
 class SmartWatchScreen extends StatefulWidget {
   const SmartWatchScreen({
@@ -21,6 +22,8 @@ class _SmartWatchScreenState extends State<SmartWatchScreen> {
   String connectionState = "Disconnected";
   bool isConnected = false;
 
+  String text = "(Waiting)";
+
   @override
   void initState() {
     super.initState();
@@ -34,10 +37,16 @@ class _SmartWatchScreenState extends State<SmartWatchScreen> {
       deviceId = prefs.getString('deviceId') ?? '00:00:00:00:00:00';
       deviceName = prefs.getString('deviceName') ?? '-';
       serviceStatus = isRunning ? "Service is running" : "Service stoped";
+      if (isRunning) {
+        text = 'Stop Service';
+      } else {
+        text = 'Start Service';
+      }
     });
-
-    /*final service = FlutterBackgroundService();
-    service.sendData({"action": "get_status"});*/
+    if (isRunning) {
+      final service = FlutterBackgroundService();
+      service.sendData({"action": "get_status"});
+    }
   }
 
   @override
@@ -51,11 +60,8 @@ class _SmartWatchScreenState extends State<SmartWatchScreen> {
               Padding(
                 padding: const EdgeInsets.all(20.0),
                 child: Text(
-                  connectionState == "Disconnected"
-                      ? "MY-Time"
-                      : connectionState,
+                  "MY-Time",
                   style: Theme.of(context).textTheme.headline5,
-                  textAlign: TextAlign.center,
                 ),
               ),
               Expanded(
@@ -82,41 +88,44 @@ class _SmartWatchScreenState extends State<SmartWatchScreen> {
       return StreamBuilder<Map<String, dynamic>?>(
           stream: FlutterBackgroundService().onDataReceived,
           builder: (context, snapshot) {
-            if (!snapshot.hasData) {
+            /*if (!snapshot.hasData) {
               FlutterBackgroundService().sendData({"action": "get_status"});
               return const Center(
                 child: CircularProgressIndicator(),
               );
-            }
+            }*/
 
-            final data = snapshot.data!;
+            if (snapshot.hasData) {
+              final data = snapshot.data!;
 
-            if (data["action"] == "device_state") {
-              String state = data["state"];
-              if (state == "connected") {
-                connectionState = "Connected to\n$deviceName";
-                isConnected = true;
-              } else if (state == "connecting") {
-                connectionState = "Connecting to\n$deviceName";
-                isConnected = false;
-              } else if (state == "disconnecting") {
-                connectionState = "Disconnecting from\n$deviceName";
-                isConnected = false;
-              } else {
-                connectionState = "Disconnected";
-                isConnected = false;
+              if (data["action"] == "device_state" ||
+                  data["action"] == "device_connection_state") {
+                String state = data["state"];
+                if (state == "connected") {
+                  connectionState = "Connected to\n$deviceName";
+                  isConnected = true;
+                } else if (state == "connecting") {
+                  connectionState = "Connecting to\n$deviceName";
+                  isConnected = false;
+                } else if (state == "disconnecting") {
+                  connectionState = "Disconnecting from\n$deviceName";
+                  isConnected = false;
+                } else {
+                  connectionState = "Disconnected";
+                  isConnected = false;
+                }
               }
             }
 
             return Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  /*Text(
+                  Text(
                     connectionState,
                     style: Theme.of(context).textTheme.headline5,
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 30),*/
+                  const SizedBox(height: 30),
                   Text(deviceId,
                       style: const TextStyle(
                         fontSize: 22,
@@ -140,10 +149,45 @@ class _SmartWatchScreenState extends State<SmartWatchScreen> {
                       const SizedBox(
                         width: 10,
                       ),
-                      ElevatedButton.icon(
+                      /*ElevatedButton.icon(
                           icon: const Icon(Icons.bluetooth_disabled),
                           label: const Text("Disconnect"),
-                          onPressed: isConnected ? disconnectDevice : null),
+                          onPressed: isConnected ? disconnectDevice : null),*/
+                      ElevatedButton(
+                        child: Text(text),
+                        onPressed: () async {
+                          var isRunning = await FlutterBackgroundService()
+                              .isServiceRunning();
+                          if (isRunning) {
+                            FlutterBackgroundService().sendData(
+                              {"action": "stopService"},
+                            );
+                          } else {
+                            FlutterBackgroundService.initialize(onStart);
+                            if (deviceId.endsWith('00:00:00:00:00:00')) {
+                              FlutterBackgroundService().setNotificationInfo(
+                                title: "MY-Time",
+                                content: "Please select a device",
+                              );
+                            } else {
+                              FlutterBackgroundService().sendData(
+                                  {"action": "connect", 'deviceId': deviceId});
+                            }
+                          }
+                          setState(() {
+                            serviceStatus = !isRunning
+                                ? "Service is running"
+                                : "Service stoped";
+                            if (!isRunning) {
+                              text = 'Stop Service';
+                            } else {
+                              text = 'Start Service';
+                              connectionState = "Disconnected";
+                              isConnected = false;
+                            }
+                          });
+                        },
+                      ),
                       const SizedBox(
                         width: 10,
                       ),

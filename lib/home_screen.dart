@@ -19,6 +19,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool isConnected = false;
   String deviceName = '-';
 
+  IconData iconBattery = FontAwesomeIcons.batteryEmpty;
   String battery = '0%';
   String batteryStatus = 'Unknown';
   String batteryVoltage = '0.0v';
@@ -84,12 +85,30 @@ class _HomeScreenState extends State<HomeScreen> {
                         isConnected = false;
                       }
 
-                      battery = data["battery"] + '%';
-                      batteryStatus = data["battery_status"] == "1"
-                          ? "Unknown"
-                          : data["batteryStatus"] == "2"
-                              ? "Charging"
-                              : "Discharging";
+                      switch (data["battery_status"]) {
+                        case 2:
+                          batteryStatus = 'Charging';
+                          break;
+                        case 3:
+                          batteryStatus = 'Discharging';
+                          break;
+                        default:
+                          batteryStatus = 'Unknown';
+                          break;
+                      }
+
+                      battery = data["battery"].toString() + '%';
+                      if (data["battery"] < 10) {
+                        iconBattery = FontAwesomeIcons.batteryEmpty;
+                      } else if (data["battery"] < 40) {
+                        iconBattery = FontAwesomeIcons.batteryQuarter;
+                      } else if (data["battery"] < 60) {
+                        iconBattery = FontAwesomeIcons.batteryHalf;
+                      } else if (data["battery"] < 80) {
+                        iconBattery = FontAwesomeIcons.batteryThreeQuarters;
+                      } else {
+                        iconBattery = FontAwesomeIcons.batteryFull;
+                      }
                       batteryVoltage = data["battery_voltage"] + 'v';
                     }
 
@@ -118,8 +137,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             batteryVoltage,
                             batteryStatus,
                             batteryStatus == "Charging"
-                                ? Icons.battery_charging_full
-                                : FontAwesomeIcons.batteryHalf,
+                                ? Icons.battery_charging_full_rounded
+                                : iconBattery,
                             Colors.purple),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,

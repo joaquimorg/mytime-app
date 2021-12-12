@@ -134,6 +134,18 @@ class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
           smartWatchStatus.deviceBatteryStatus = batteryStatus;
           sendStatus("connected");
           break;
+        case 0x03:
+          // get steps
+          int steps = byteData.getUint16(4);
+          smartWatchStatus.deviceSteps = steps;
+          sendStatus("connected");
+          break;
+        case 0x04:
+          // get harts rate
+          int hartRate = byteData.getUint16(4);
+          smartWatchStatus.deviceHartrate = hartRate;
+          sendStatus("connected");
+          break;
         default:
           service.setNotificationInfo(
               title: "BLE", content: "Data : " + data.toString());
@@ -148,6 +160,8 @@ class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
       "battery": smartWatchStatus.deviceBattery,
       "battery_voltage": smartWatchStatus.deviceBatteryVolt.toStringAsFixed(3),
       "battery_status": smartWatchStatus.deviceBatteryStatus,
+      "steps": smartWatchStatus.deviceSteps,
+      "heart_rate": smartWatchStatus.deviceHartrate,
     });
   }
 

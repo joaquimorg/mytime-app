@@ -110,6 +110,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         iconBattery = FontAwesomeIcons.batteryFull;
                       }
                       batteryVoltage = data["battery_voltage"] + 'v';
+
+                      stepCount = data["steps"].toString();
+                      hartRate = data["heart_rate"].toString() + ' bpm';
                     }
 
                     if (!isConnected) {

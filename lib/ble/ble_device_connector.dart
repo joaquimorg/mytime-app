@@ -45,8 +45,10 @@ class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
     }
     _logMessage('Start connecting to $deviceId');
     _connection = _ble
-        .connectToDevice(
+        .connectToAdvertisingDevice(
       id: _deviceId,
+      rescanDuration: const Duration(seconds: 5),
+      connectionTimeout: const Duration(seconds:  5),
     )
         .listen(
       (update) {

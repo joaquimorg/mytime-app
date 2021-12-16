@@ -1,5 +1,7 @@
 # MY-Time
 
+[![Codemagic build status](https://api.codemagic.io/apps/61bb75ec68cc9c001544bf64/61bb75ec68cc9c001544bf63/status_badge.svg)](https://codemagic.io/apps/61bb75ec68cc9c001544bf64/61bb75ec68cc9c001544bf63/latest_build)
+
 MY-Time companion app for PineTime smartwatch running MY-Time firmware
 
 ## Information

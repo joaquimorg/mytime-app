@@ -20,7 +20,10 @@ class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
   List<String> appList = <String>[];
 
   final FlutterReactiveBle _ble;
-  void _logMessage(String message) {}
+  void _logMessage(String message) {
+    FlutterBackgroundService()
+        .setNotificationInfo(title: "BLE", content: message);
+  }
 
   String _deviceId = '00:00:00:00:00:00';
   int mtuSize = 20;
@@ -44,13 +47,12 @@ class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
       return;
     }
     _logMessage('Start connecting to $deviceId');
-    _connection = _ble
-        .connectToAdvertisingDevice(
+    _connection = _ble.connectToAdvertisingDevice(
       id: _deviceId,
-      rescanDuration: const Duration(seconds: 5),
-      connectionTimeout: const Duration(seconds:  5),
-    )
-        .listen(
+      prescanDuration: const Duration(seconds: 5),
+      connectionTimeout: const Duration(seconds: 5),
+      withServices: [Uuid.parse("6E400001-B5A3-F393-E0A9-E50E24DCCA9E")],
+    ).listen(
       (update) {
         _logMessage(
             'ConnectionState for device $_deviceId : ${update.connectionState}');

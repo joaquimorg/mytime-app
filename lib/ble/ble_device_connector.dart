@@ -146,7 +146,7 @@ class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
           break;
         case 0x04:
           // get harts rate
-          int hartRate = byteData.getUint16(4);
+          int hartRate = byteData.getUint8(2);
           smartWatchStatus.deviceHartrate = hartRate;
           sendStatus("connected");
           break;

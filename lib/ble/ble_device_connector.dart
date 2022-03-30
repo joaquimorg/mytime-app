@@ -183,10 +183,10 @@ class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
   }
 
   void sendTime() {
-    sendData(
-        0x01,
-        intToList((DateTime.now().millisecondsSinceEpoch / 1000).round() -
-            946684800));
+    var dateTime = DateTime.now();
+    dateTime = dateTime.add(Duration(hours: dateTime.timeZoneOffset.inHours));
+    int now = dateTime.millisecondsSinceEpoch;
+    sendData(0x01, intToList((now / 1000).round() - 946684800));
   }
 
   void sendNotification(NotificationEvent event) {

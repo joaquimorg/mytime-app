@@ -46,6 +46,7 @@ dependencies:
     path: packages/notifications
   device_apps: ^2.1.1
   flutter_local_notifications: ^13.0.0
+  meta: ^1.8.0
 
 
 dev_dependencies:

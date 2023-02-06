@@ -43,10 +43,10 @@ class _SmartWatchScreenState extends State<SmartWatchScreen> {
       }
     });
     //final service = FlutterBackgroundService();
-    if (isRunning) {
-      //service.invoke('stopService');
-      FlutterBackgroundService().invoke('get_status');
-    }
+    //if (isRunning) {
+    //service.invoke('stopService');
+    //  FlutterBackgroundService().invoke('get_status');
+    //}
   }
 
   @override
@@ -88,12 +88,12 @@ class _SmartWatchScreenState extends State<SmartWatchScreen> {
       return StreamBuilder<Map<String, dynamic>?>(
           stream: FlutterBackgroundService().on('update'),
           builder: (context, snapshot) {
-            /*if (!snapshot.hasData) {
+            if (!snapshot.hasData) {
               FlutterBackgroundService().invoke("get_status");
               return const Center(
                 child: CircularProgressIndicator(),
               );
-            }*/
+            }
 
             if (snapshot.hasData) {
               final data = snapshot.data!;
@@ -160,14 +160,14 @@ class _SmartWatchScreenState extends State<SmartWatchScreen> {
                               await FlutterBackgroundService().isRunning();
                           if (isRunning) {
                             FlutterBackgroundService().invoke(
-                              'stopService',
+                              'stop_service',
                             );
                           } else {
                             FlutterBackgroundService().startService();
                             if (deviceId.endsWith('00:00:00:00:00:00')) {
                               FlutterBackgroundService()
                                   .invoke('sendNotification', {
-                                "title": "MY-Time",
+                                "title": "PineTime",
                                 "content": "Please select a device",
                               });
                             } else {

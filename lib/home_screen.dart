@@ -35,10 +35,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _setStatus() async {
     final SharedPreferences prefs = await _prefs;
-    var isRunning = await FlutterBackgroundService().isRunning();
+    /*var isRunning = await FlutterBackgroundService().isRunning();
     if (isRunning) {
       FlutterBackgroundService().invoke('get_status');
-    }
+    }*/
     setState(() {
       deviceName = prefs.getString('deviceName') ?? '-';
     });
@@ -63,12 +63,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: StreamBuilder<Map<String, dynamic>?>(
                   stream: FlutterBackgroundService().on('update'),
                   builder: (context, snapshot) {
-                    /*if (!snapshot.hasData) {
+                    if (!snapshot.hasData) {
                       FlutterBackgroundService().invoke('get_status');
                       return const Center(
                         child: CircularProgressIndicator(),
                       );
-                    }*/
+                    }
 
                     if (snapshot.hasData) {
                       final data = snapshot.data!;

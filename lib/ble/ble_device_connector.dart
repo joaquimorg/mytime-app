@@ -12,14 +12,18 @@ import '../utils.dart';
 import 'reactive_state.dart';
 
 class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
-  BleDeviceConnector({required FlutterReactiveBle ble}) : _ble = ble;
+  BleDeviceConnector(this.notificationService,
+      {required FlutterReactiveBle ble})
+      : _ble = ble;
 
   List<String> appList = <String>[];
 
   final FlutterReactiveBle _ble;
+  final ServiceInstance notificationService;
+
   void _logMessage(String message) {
-    FlutterBackgroundService()
-        .invoke('sendNotification', {"title": "BLE", "content": message});
+    /*notificationService
+        .invoke('notification', {"title": "BLE log", "content": message});*/
   }
 
   String _deviceId = '00:00:00:00:00:00';
@@ -36,14 +40,17 @@ class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
   late StreamSubscription<ConnectionStateUpdate> _connection;
 
   Future<void> connect(String deviceId) async {
-    if (!deviceId.contains('00:00:00:00:00:00')) {
+    /*if (!deviceId.contains('00:00:00:00:00:00')) {
       _deviceId = deviceId;
     }
 
     if (_deviceId.contains('00:00:00:00:00:00')) {
       return;
-    }
-    _logMessage('Start connecting to $deviceId');
+    }*/
+
+    _deviceId = deviceId;
+
+    _logMessage(' Start connecting to $deviceId');
     _connection = _ble.connectToAdvertisingDevice(
       id: _deviceId,
       prescanDuration: const Duration(seconds: 5),
@@ -100,19 +107,18 @@ class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
   }
 
   void evaluateData(List<int> data) {
-    final service = FlutterBackgroundService();
     //service.setNotificationInfo(title: "BLE", content: "Data : ${data.toString()}");
     Uint8List responseData = Uint8List.fromList(data);
     var byteData = responseData.buffer.asByteData();
 
     if (byteData.getUint8(0) == 0x00) {
       int action = byteData.getUint8(1);
+      //_logMessage('Action from device: $action');
       switch (action) {
         case 0x01:
           // get version
           // send time
-          service.invoke('send_time');
-          //service.setNotificationInfo(title: "Status", content: "FW Version");
+          sendTime();
           break;
         case 0x02:
           // get battery info
@@ -122,13 +128,13 @@ class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
 
           /*service.setNotificationInfo(
               title: "Status", content: "Battery $battery%");*/
-          FlutterBackgroundService().invoke('sendNotification', {
-            "title": "Battery",
-            "content": "Battery $battery%",
-          });
+          /*notificationService.invoke('notification', {
+            'title': 'Battery',
+            'content': 'Battery $battery%',
+          });*/
 
-          service.invoke('update', {
-            "action": "battery",
+          notificationService.invoke('update', {
+            'action': 'battery',
             'battery': battery,
             'batteryVolt': batteryVolt,
             'batteryStatus': batteryStatus
@@ -137,39 +143,37 @@ class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
           smartWatchStatus.deviceBattery = battery;
           smartWatchStatus.deviceBatteryVolt = batteryVolt;
           smartWatchStatus.deviceBatteryStatus = batteryStatus;
-          //sendStatus("connected", service);
-          service.invoke('get_status');
+          sendStatus('connected');
           break;
         case 0x03:
           // get steps
           int steps = byteData.getUint16(4);
           smartWatchStatus.deviceSteps = steps;
-          //sendStatus("connected", service);
-          service.invoke('get_status');
+          sendStatus('connected');
           break;
         case 0x04:
           // get harts rate
           int hartRate = byteData.getUint8(2);
           smartWatchStatus.deviceHartrate = hartRate;
-          //sendStatus("connected", service);
-          service.invoke('get_status');
+          sendStatus('connected');
           break;
         default:
         /*service.setNotificationInfo(
               title: "BLE", content: "Data : " + data.toString());*/
       }
+      //notificationService.invoke('get_status');
     }
   }
 
-  void sendStatus(String status, ServiceInstance service) {
-    service.invoke('update', {
-      "action": "device_state",
-      "state": status,
-      "battery": smartWatchStatus.deviceBattery,
-      "battery_voltage": smartWatchStatus.deviceBatteryVolt.toStringAsFixed(3),
-      "battery_status": smartWatchStatus.deviceBatteryStatus,
-      "steps": smartWatchStatus.deviceSteps,
-      "heart_rate": smartWatchStatus.deviceHartrate,
+  void sendStatus(String status) {
+    notificationService.invoke('update', {
+      'action': 'device_state',
+      'state': status,
+      'battery': smartWatchStatus.deviceBattery,
+      'battery_voltage': smartWatchStatus.deviceBatteryVolt.toStringAsFixed(3),
+      'battery_status': smartWatchStatus.deviceBatteryStatus,
+      'steps': smartWatchStatus.deviceSteps,
+      'heart_rate': smartWatchStatus.deviceHartrate,
     });
   }
 
@@ -193,7 +197,7 @@ class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
     sendData(0x01, intToList((now / 1000).round() - 946684800));
   }
 
-  void sendNotification(NotificationEvent event) {
+  void notification(NotificationEvent event) {
     if (event.packageName == null) {
       return;
     }
@@ -213,15 +217,10 @@ class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
 
     sendData(0x02, notificationData.toBytes().toBytes());
 
-    final service = FlutterBackgroundService();
-    /*service.setNotificationInfo(
-      title: "Notification",
-      content: notificationData.title,
-    );*/
-    FlutterBackgroundService().invoke('sendNotification', {
-      "title": "Notification",
-      "content": notificationData.title,
-    });
+    /*notificationService.invoke('notification', {
+      'title': 'Notification',
+      'content': notificationData.title,
+    });*/
   }
 
   void sendDebugNotification() {

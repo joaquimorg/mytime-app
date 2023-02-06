@@ -24,7 +24,13 @@ class _MainBottomNavBarState extends State<MainBottomNavBar> {
   }
 
   Future<void> _requestPermission() async {
+    //await Permission.bluetoothScan.isGranted;
+    //await Permission.bluetoothConnect.isGranted;
+    //await Permission.location.isGranted;
+    //await Permission.accessNotificationPolicy.isGranted;
+
     final status = await Permission.location.isGranted;
+
     setState(() {
       _permissionStatus = status;
     });
@@ -59,7 +65,7 @@ class _MainBottomNavBarState extends State<MainBottomNavBar> {
                 child: Text(
                   "Location permission is not granted.\nPlease grant it, "
                   "otherwise the app won't work.",
-                  style: Theme.of(context).textTheme.headline6,
+                  style: Theme.of(context).textTheme.titleLarge,
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -113,19 +119,16 @@ class _MainBottomNavBarState extends State<MainBottomNavBar> {
 
   void connectToDevice() {
     final service = FlutterBackgroundService();
-    final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
-    _prefs.then((prefs) {
+    final Future<SharedPreferences> prefs = SharedPreferences.getInstance();
+    prefs.then((prefs) {
       String deviceId = prefs.getString('deviceId') ?? '00:00:00:00:00:00';
+      //String deviceName = prefs.getString('deviceName') ?? '-';
       if (deviceId.endsWith('00:00:00:00:00:00')) {
-        service.invoke('sendNotification', {
-          "title": "MY-Time",
+        service.invoke('notification', {
+          "title": "No device selected",
           "content": "Please select a device",
         });
       } else {
-        service.invoke('sendNotification', {
-          "title": "MY-Time",
-          "content": "Connected to device : $deviceId",
-        });
         service.invoke('connect', {'deviceId': deviceId});
       }
     });

@@ -27,11 +27,11 @@ class _AppsScreenState extends State<AppsScreen> {
                     checked: _showSystemApps,
                     value: 'system_apps',
                     enabled: !_onlySelectedApps,
-                    child: Text('Show system apps')),
+                    child: const Text('Show system apps')),
                 CheckedPopupMenuItem<String>(
                   checked: _onlySelectedApps,
                   value: 'selected_apps',
-                  child: Text('Show selectd apps only'),
+                  child: const Text('Show selectd apps only'),
                 )
               ];
             },
@@ -164,7 +164,6 @@ class _AppsListScreenContentState extends State<_AppsListScreenContent> {
     final SharedPreferences prefs = await _prefs;
     await prefs.remove('applications');
     await prefs.setStringList('applications', appList);
-    FlutterBackgroundService()
-        .sendData({"action": "app_list", "data": appList});
+    FlutterBackgroundService().invoke('app_list', {"data": appList});
   }
 }

@@ -16,4 +16,4 @@ https://pub.dev/packages/quiver
 
 -- build\app\outputs\flutter-apk\app-release.apk
 
--- adb -s VFFDU18C20006325 install build\app\outputs\flutter-apk\app-release.apk
+-- adb -s 024f294d0c50d133 install build\app\outputs\flutter-apk\app-release.apk

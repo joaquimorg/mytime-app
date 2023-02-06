@@ -35,6 +35,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _setStatus() async {
     final SharedPreferences prefs = await _prefs;
+    var isRunning = await FlutterBackgroundService().isRunning();
+    if (isRunning) {
+      FlutterBackgroundService().invoke('get_status');
+    }
     setState(() {
       deviceName = prefs.getString('deviceName') ?? '-';
     });
@@ -52,67 +56,68 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.all(20.0),
                 child: Text(
                   'MY-Time',
-                  style: Theme.of(context).textTheme.headline4,
+                  style: Theme.of(context).textTheme.headlineMedium,
                 ),
               ),
               Expanded(
                 child: StreamBuilder<Map<String, dynamic>?>(
-                  stream: FlutterBackgroundService().onDataReceived,
+                  stream: FlutterBackgroundService().on('update'),
                   builder: (context, snapshot) {
-                    if (!snapshot.hasData) {
-                      FlutterBackgroundService()
-                          .sendData({"action": "get_status"});
+                    /*if (!snapshot.hasData) {
+                      FlutterBackgroundService().invoke('get_status');
                       return const Center(
                         child: CircularProgressIndicator(),
                       );
-                    }
+                    }*/
 
-                    final data = snapshot.data!;
+                    if (snapshot.hasData) {
+                      final data = snapshot.data!;
 
-                    if (data["action"] == "device_state") {
-                      String state = data["state"];
-                      if (state == "connected") {
-                        connectionState = "Connected to $deviceName";
-                        isConnected = true;
-                      } else if (state == "connecting") {
-                        connectionState = "Connecting to $deviceName";
-                        isConnected = false;
-                      } else if (state == "disconnecting") {
-                        connectionState = "Disconnecting from $deviceName";
-                        isConnected = false;
-                      } else {
-                        connectionState = "Disconnected";
-                        isConnected = false;
+                      if (data["action"] == "device_state") {
+                        String state = data["state"];
+                        if (state == "connected") {
+                          connectionState = "Connected to $deviceName";
+                          isConnected = true;
+                        } else if (state == "connecting") {
+                          connectionState = "Connecting to $deviceName";
+                          isConnected = false;
+                        } else if (state == "disconnecting") {
+                          connectionState = "Disconnecting from $deviceName";
+                          isConnected = false;
+                        } else {
+                          connectionState = "Disconnected";
+                          isConnected = false;
+                        }
+
+                        switch (data["battery_status"]) {
+                          case 2:
+                            batteryStatus = 'Charging';
+                            break;
+                          case 3:
+                            batteryStatus = 'Discharging';
+                            break;
+                          default:
+                            batteryStatus = 'Unknown';
+                            break;
+                        }
+
+                        battery = '${data["battery"]}%';
+                        if (data["battery"] < 10) {
+                          iconBattery = FontAwesomeIcons.batteryEmpty;
+                        } else if (data["battery"] < 40) {
+                          iconBattery = FontAwesomeIcons.batteryQuarter;
+                        } else if (data["battery"] < 60) {
+                          iconBattery = FontAwesomeIcons.batteryHalf;
+                        } else if (data["battery"] < 80) {
+                          iconBattery = FontAwesomeIcons.batteryThreeQuarters;
+                        } else {
+                          iconBattery = FontAwesomeIcons.batteryFull;
+                        }
+                        batteryVoltage = data["battery_voltage"] + 'v';
+
+                        stepCount = data["steps"].toString();
+                        hartRate = '${data["heart_rate"]} bpm';
                       }
-
-                      switch (data["battery_status"]) {
-                        case 2:
-                          batteryStatus = 'Charging';
-                          break;
-                        case 3:
-                          batteryStatus = 'Discharging';
-                          break;
-                        default:
-                          batteryStatus = 'Unknown';
-                          break;
-                      }
-
-                      battery = data["battery"].toString() + '%';
-                      if (data["battery"] < 10) {
-                        iconBattery = FontAwesomeIcons.batteryEmpty;
-                      } else if (data["battery"] < 40) {
-                        iconBattery = FontAwesomeIcons.batteryQuarter;
-                      } else if (data["battery"] < 60) {
-                        iconBattery = FontAwesomeIcons.batteryHalf;
-                      } else if (data["battery"] < 80) {
-                        iconBattery = FontAwesomeIcons.batteryThreeQuarters;
-                      } else {
-                        iconBattery = FontAwesomeIcons.batteryFull;
-                      }
-                      batteryVoltage = data["battery_voltage"] + 'v';
-
-                      stepCount = data["steps"].toString();
-                      hartRate = data["heart_rate"].toString() + ' bpm';
                     }
 
                     if (!isConnected) {
@@ -125,7 +130,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           Center(
                             child: Text(
                               "No smartwatch connected.",
-                              style: Theme.of(context).textTheme.headline6,
+                              style: Theme.of(context).textTheme.titleLarge,
                               textAlign: TextAlign.center,
                             ),
                           ),
@@ -249,7 +254,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Padding(
             padding: const EdgeInsets.only(left: 16.0, bottom: 10.0),
             child: Text(
-              voltage + " / " + status,
+              "$voltage / $status",
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 16.0,

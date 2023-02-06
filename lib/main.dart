@@ -1,21 +1,22 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
-import 'package:notifications/notifications.dart';
 import 'package:provider/provider.dart';
 import 'ble/ble_device_connector.dart';
 import 'ble/ble_scanner.dart';
 import 'main_bottom_nav_bar.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   SystemChrome.setPreferredOrientations(
       [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
 
-  FlutterBackgroundService.initialize(onStart);
+  await initializeService();
 
   final _ble = FlutterReactiveBle();
   final _scanner = BleScanner(ble: _ble);
@@ -44,9 +45,74 @@ void main() {
   );
 }
 
-void onStart() {
-  WidgetsFlutterBinding.ensureInitialized();
+Future<void> initializeService() async {
   final service = FlutterBackgroundService();
+
+  const AndroidNotificationChannel channel = AndroidNotificationChannel(
+    'pinetime40', // id
+    'PineTime', // title
+    description: 'PineTime companion app notifications.', // description
+    importance: Importance.low, // importance must be at low or higher level
+  );
+
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+
+  await flutterLocalNotificationsPlugin
+      .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>()
+      ?.createNotificationChannel(channel);
+
+  await service.configure(
+    androidConfiguration: AndroidConfiguration(
+      // this will be executed when app is in foreground or background in separated isolate
+      onStart: onStart,
+
+      // auto start service
+      autoStart: true,
+      isForegroundMode: true,
+
+      notificationChannelId: 'pinetime40',
+      initialNotificationTitle: 'PineTime Companion App',
+      initialNotificationContent: 'Initializing',
+      foregroundServiceNotificationId: 888,
+    ),
+    iosConfiguration: IosConfiguration(
+      // auto start service
+      autoStart: true,
+
+      // this will be executed when app is in foreground in separated isolate
+      onForeground: onStart,
+    ),
+  );
+
+  service.startService();
+}
+
+void sendNotification(
+    FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin,
+    String? title,
+    String? content) {
+  flutterLocalNotificationsPlugin.show(
+    888,
+    title,
+    content,
+    const NotificationDetails(
+      android: AndroidNotificationDetails(
+        'pinetime40',
+        'PineTime Companion App',
+        icon: 'ic_bg_service_small',
+        ongoing: true,
+      ),
+    ),
+  );
+}
+
+@pragma('vm:entry-point')
+void onStart(ServiceInstance service) async {
+  //WidgetsFlutterBinding.ensureInitialized();
+  DartPluginRegistrant.ensureInitialized();
+
   final flutterReactiveBle = FlutterReactiveBle();
 
   final BleDeviceConnector deviceConnector =
@@ -54,114 +120,105 @@ void onStart() {
 
   DeviceConnectionState connectionState = DeviceConnectionState.disconnecting;
 
-  //StreamSubscription<NotificationEvent>? _subscription;
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
 
-  Timer _reconnectTimer;
+  sendNotification(
+      flutterLocalNotificationsPlugin, 'PineTime', 'Service is running...');
 
-  _reconnectTimer = Timer.periodic(
-      const Duration(
-        seconds: 30,
-      ), (timer) {
+  Timer.periodic(const Duration(seconds: 10), (Timer timer) {
     if (connectionState == DeviceConnectionState.disconnected) {
-      service.setNotificationInfo(
-          title: "BLE", content: "Retrying to connect...");
-      deviceConnector.connect('00:00:00:00:00:00').then((_) {})
-          /*.timeout(const Duration(seconds: 15), onTimeout: () {
-        service.setNotificationInfo(
-            title: "BLE", content: "Connection timeout...");
-      })*/
-          .catchError((error) {
-        service.setNotificationInfo(
-            title: "BLE", content: "Connection error...");
+      sendNotification(
+          flutterLocalNotificationsPlugin, "BLE", "Retrying to connect...");
+
+      deviceConnector
+          .connect('00:00:00:00:00:00')
+          .then((_) {})
+          .timeout(const Duration(seconds: 15), onTimeout: () {
+        sendNotification(
+            flutterLocalNotificationsPlugin, "BLE", "Connection timeout...");
+      }).catchError((error) {
+        sendNotification(
+            flutterLocalNotificationsPlugin, "BLE", "Connection error...");
       });
+    } else {
+      sendNotification(
+          flutterLocalNotificationsPlugin, 'PineTime', 'Device connected...');
     }
   });
 
-  service.onDataReceived.listen((event) async {
-    // ------------------ stopService
-    if (event!["action"] == "stopService") {
-      service.setNotificationInfo(title: "MY-Time", content: "Service stopped");
-      service.stopBackgroundService();
-      //flutterReactiveBle.deinitialize();
-      if (connectionState == DeviceConnectionState.connected) {
-        deviceConnector.disconnect();
-        //service.setNotificationInfo(title: "BLE", content: "Disconnected");
-      }
-      _reconnectTimer.cancel();
+  service.on('stopService').listen((event) {
+    service.stopSelf();
+    if (connectionState == DeviceConnectionState.connected) {
+      deviceConnector.disconnect();
+      sendNotification(flutterLocalNotificationsPlugin, "BLE",
+          "Disconnected, service stoped...");
     }
+  });
 
-    // ------------------ disconnect
-    if (event["action"] == "disconnect") {
-      //flutterReactiveBle.deinitialize();
-      if (connectionState == DeviceConnectionState.connected) {
-        deviceConnector.disconnect();
-        //service.setNotificationInfo(title: "BLE", content: "Disconnected");
-      }
+  //service.on('stopService').listen((event) {});
+
+  service.on('sendNotification').listen((event) {
+    sendNotification(
+        flutterLocalNotificationsPlugin, event?["title"], event?["content"]);
+  });
+
+  service.on('disconnect').listen((event) {
+    //flutterReactiveBle.deinitialize();
+    if (connectionState == DeviceConnectionState.connected) {
+      deviceConnector.disconnect();
+      sendNotification(flutterLocalNotificationsPlugin, "BLE", "Disconnected");
     }
+  });
 
-    // ------------------ connect
-    if (event["action"] == "connect") {
-      service.setNotificationInfo(title: "BLE", content: "Connecting...");
-      String deviceId = event["deviceId"];
+  service.on('connect').listen((event) {
+    sendNotification(flutterLocalNotificationsPlugin, "BLE", "Connecting...");
+    String deviceId = event?["deviceId"];
 
-      deviceConnector.connect(deviceId).then((_) {
-        //service.setNotificationInfo(title: "BLE", content: "Connected");
-      });
-    }
+    deviceConnector.connect(deviceId).then((_) {
+      sendNotification(flutterLocalNotificationsPlugin, "BLE", "Connected");
+    });
+  });
 
-    // ------------------ Send Time
-    if (event["action"] == "send_time") {
-      deviceConnector.sendTime();
-    }
+  service.on('send_time').listen((event) {
+    deviceConnector.sendTime();
+  });
 
-    if (event["action"] == "send_debug_notification") {
-      deviceConnector.sendDebugNotification();
-    }
+  service.on('send_debug_notification').listen((event) {
+    deviceConnector.sendDebugNotification();
+  });
 
-    if (event["action"] == "get_status") {
-      deviceConnector.sendStatus(connectionState.name);
-    }
+  service.on('get_status').listen((event) {
+    deviceConnector.sendStatus(connectionState.name, service);
+  });
 
-    if (event["action"] == "app_list") {
-      List<String> appList = List<String>.from(event['data'] as List);
-      deviceConnector.appListChanged(appList);
-    }
+  service.on('app_list').listen((event) {
+    List<String> appList = List<String>.from(event!['data'] as List);
+    deviceConnector.appListChanged(appList);
   });
 
   deviceConnector.loadAppList();
 
   // bring to foreground
-  service.setForegroundMode(true);
+  //service.setForegroundMode(true);
 
   deviceConnector.state.listen((state) {
     connectionState = state.connectionState;
     if (state.connectionState == DeviceConnectionState.connected) {
       //_reconnectTimer.cancel();
-      service.setNotificationInfo(
-          title: "BLE", content: "Device is connected.");
+      sendNotification(
+          flutterLocalNotificationsPlugin, "BLE", "Device is connected.");
       deviceConnector.setMTUSize(120);
       deviceConnector.sendTime();
       deviceConnector.listenForData();
     } else if (state.connectionState == DeviceConnectionState.disconnected) {
-      service.setNotificationInfo(
-          title: "BLE", content: "Device disconnected.");
+      sendNotification(
+          flutterLocalNotificationsPlugin, "BLE", "Device disconnected.");
     }
 
-    service.sendData({
+    service.invoke('update', {
       "action": "device_connection_state",
       "state": state.connectionState.name
     });
   });
-
-  Notifications _notifications = Notifications();
-  _notifications.notificationStream!.listen(
-    (NotificationEvent event) {
-      deviceConnector.sendNotification(event);
-    },
-  );
-
-  service.setNotificationInfo(
-    title: "MY-Time",
-    content: "BLE service is running.",
-  );
 }

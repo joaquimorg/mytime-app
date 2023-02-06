@@ -73,16 +73,16 @@ class _DeviceListState extends State<_DeviceList> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       ElevatedButton(
-                        child: const Text('Scan'),
                         onPressed: !widget.scannerState.scanIsInProgress
                             ? _startScanning
                             : null,
+                        child: const Text('Scan'),
                       ),
                       ElevatedButton(
-                        child: const Text('Stop'),
                         onPressed: widget.scannerState.scanIsInProgress
                             ? widget.stopScan
                             : null,
+                        child: const Text('Stop'),
                       ),
                     ],
                   ),
@@ -131,8 +131,8 @@ class _DeviceListState extends State<_DeviceList> {
                           _prefs.then((prefs) {
                             prefs.setString("deviceName", device.name);
                           });
-                          FlutterBackgroundService().sendData(
-                              {"action": "connect", 'deviceId': device.id});
+                          FlutterBackgroundService()
+                              .invoke('connect', {'deviceId': device.id});
                           Navigator.pop(context);
                         },
                       ),

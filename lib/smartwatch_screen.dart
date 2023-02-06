@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'device/device_list.dart';
-import 'main.dart';
 
 class SmartWatchScreen extends StatefulWidget {
   const SmartWatchScreen({
@@ -32,7 +31,7 @@ class _SmartWatchScreenState extends State<SmartWatchScreen> {
 
   void _setStatus() async {
     final SharedPreferences prefs = await _prefs;
-    var isRunning = await FlutterBackgroundService().isServiceRunning();
+    var isRunning = await FlutterBackgroundService().isRunning();
     setState(() {
       deviceId = prefs.getString('deviceId') ?? '00:00:00:00:00:00';
       deviceName = prefs.getString('deviceName') ?? '-';
@@ -43,9 +42,10 @@ class _SmartWatchScreenState extends State<SmartWatchScreen> {
         text = 'Start Service';
       }
     });
+    //final service = FlutterBackgroundService();
     if (isRunning) {
-      final service = FlutterBackgroundService();
-      service.sendData({"action": "get_status"});
+      //service.invoke('stopService');
+      FlutterBackgroundService().invoke('get_status');
     }
   }
 
@@ -61,7 +61,7 @@ class _SmartWatchScreenState extends State<SmartWatchScreen> {
                 padding: const EdgeInsets.all(20.0),
                 child: Text(
                   "MY-Time",
-                  style: Theme.of(context).textTheme.headline5,
+                  style: Theme.of(context).textTheme.headlineSmall,
                 ),
               ),
               Expanded(
@@ -86,10 +86,10 @@ class _SmartWatchScreenState extends State<SmartWatchScreen> {
       ]);
     } else {
       return StreamBuilder<Map<String, dynamic>?>(
-          stream: FlutterBackgroundService().onDataReceived,
+          stream: FlutterBackgroundService().on('update'),
           builder: (context, snapshot) {
             /*if (!snapshot.hasData) {
-              FlutterBackgroundService().sendData({"action": "get_status"});
+              FlutterBackgroundService().invoke("get_status");
               return const Center(
                 child: CircularProgressIndicator(),
               );
@@ -122,7 +122,7 @@ class _SmartWatchScreenState extends State<SmartWatchScreen> {
                 children: [
                   Text(
                     connectionState,
-                    style: Theme.of(context).textTheme.headline5,
+                    style: Theme.of(context).textTheme.headlineSmall,
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 30),
@@ -156,22 +156,23 @@ class _SmartWatchScreenState extends State<SmartWatchScreen> {
                       ElevatedButton(
                         child: Text(text),
                         onPressed: () async {
-                          var isRunning = await FlutterBackgroundService()
-                              .isServiceRunning();
+                          var isRunning =
+                              await FlutterBackgroundService().isRunning();
                           if (isRunning) {
-                            FlutterBackgroundService().sendData(
-                              {"action": "stopService"},
+                            FlutterBackgroundService().invoke(
+                              'stopService',
                             );
                           } else {
-                            FlutterBackgroundService.initialize(onStart);
+                            FlutterBackgroundService().startService();
                             if (deviceId.endsWith('00:00:00:00:00:00')) {
-                              FlutterBackgroundService().setNotificationInfo(
-                                title: "MY-Time",
-                                content: "Please select a device",
-                              );
+                              FlutterBackgroundService()
+                                  .invoke('sendNotification', {
+                                "title": "MY-Time",
+                                "content": "Please select a device",
+                              });
                             } else {
-                              FlutterBackgroundService().sendData(
-                                  {"action": "connect", 'deviceId': deviceId});
+                              FlutterBackgroundService()
+                                  .invoke('connect', {'deviceId': deviceId});
                             }
                           }
                           setState(() {
@@ -199,21 +200,20 @@ class _SmartWatchScreenState extends State<SmartWatchScreen> {
                   ),
                   const SizedBox(height: 20),
                   ElevatedButton(
-                      child: const Text("Send Time"),
+                      onPressed: isConnected
+                          ? () async {
+                              FlutterBackgroundService().invoke('send_time');
+                            }
+                          : null,
+                      child: const Text("Send Time")),
+                  ElevatedButton(
                       onPressed: isConnected
                           ? () async {
                               FlutterBackgroundService()
-                                  .sendData({"action": "send_time"});
+                                  .invoke('send_debug_notification');
                             }
-                          : null),
-                  ElevatedButton(
-                      child: const Text("Test Notification"),
-                      onPressed: isConnected
-                          ? () async {
-                              FlutterBackgroundService().sendData(
-                                  {"action": "send_debug_notification"});
-                            }
-                          : null),
+                          : null,
+                      child: const Text("Test Notification")),
                 ]);
           });
     }
@@ -221,7 +221,7 @@ class _SmartWatchScreenState extends State<SmartWatchScreen> {
 
   Future<void> selectDevice() async {
     await Navigator.push<void>(
-        context, MaterialPageRoute(builder: (_) => DeviceListScreen()));
+        context, MaterialPageRoute(builder: (_) => const DeviceListScreen()));
     _setStatus();
   }
 
@@ -230,11 +230,11 @@ class _SmartWatchScreenState extends State<SmartWatchScreen> {
       prefs.setString("deviceId", '00:00:00:00:00:00');
       prefs.setString("deviceName", '-');
       _setStatus();
-      FlutterBackgroundService().sendData({"action": "disconnect"});
+      FlutterBackgroundService().invoke('disconnect');
     });
   }
 
   void disconnectDevice() {
-    FlutterBackgroundService().sendData({"action": "disconnect"});
+    FlutterBackgroundService().invoke('disconnect');
   }
 }

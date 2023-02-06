@@ -117,16 +117,16 @@ class _MainBottomNavBarState extends State<MainBottomNavBar> {
     _prefs.then((prefs) {
       String deviceId = prefs.getString('deviceId') ?? '00:00:00:00:00:00';
       if (deviceId.endsWith('00:00:00:00:00:00')) {
-        service.setNotificationInfo(
-          title: "MY-Time",
-          content: "Please select a device",
-        );
+        service.invoke('sendNotification', {
+          "title": "MY-Time",
+          "content": "Please select a device",
+        });
       } else {
-        /*service.setNotificationInfo(
-          title: "MY-Time",
-          content: "Connected to device : $deviceId",
-        );*/
-        service.sendData({"action": "connect", 'deviceId': deviceId});
+        service.invoke('sendNotification', {
+          "title": "MY-Time",
+          "content": "Connected to device : $deviceId",
+        });
+        service.invoke('connect', {'deviceId': deviceId});
       }
     });
   }

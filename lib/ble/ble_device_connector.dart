@@ -1,13 +1,10 @@
 import 'dart:async';
-import 'dart:collection';
 import 'dart:convert';
-import 'dart:ffi';
 import 'dart:typed_data';
 
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:notifications/notifications.dart';
-import 'package:quiver/iterables.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../smartwatch_status.dart';
@@ -22,7 +19,7 @@ class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
   final FlutterReactiveBle _ble;
   void _logMessage(String message) {
     FlutterBackgroundService()
-        .setNotificationInfo(title: "BLE", content: message);
+        .invoke('sendNotification', {"title": "BLE", "content": message});
   }
 
   String _deviceId = '00:00:00:00:00:00';
@@ -114,8 +111,8 @@ class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
         case 0x01:
           // get version
           // send time
-          //service.sendData({"action": "send_time", 'deviceId': deviceId});
-          service.setNotificationInfo(title: "Status", content: "FW Version");
+          service.invoke('send_time');
+          //service.setNotificationInfo(title: "Status", content: "FW Version");
           break;
         case 0x02:
           // get battery info
@@ -123,42 +120,49 @@ class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
           double batteryVolt = byteData.getFloat32(6);
           int batteryStatus = byteData.getUint8(10);
 
-          service.setNotificationInfo(
-              title: "Status", content: "Battery $battery%");
+          /*service.setNotificationInfo(
+              title: "Status", content: "Battery $battery%");*/
+          FlutterBackgroundService().invoke('sendNotification', {
+            "title": "Battery",
+            "content": "Battery $battery%",
+          });
 
-          /*service.sendData({
+          service.invoke('update', {
             "action": "battery",
             'battery': battery,
             'batteryVolt': batteryVolt,
             'batteryStatus': batteryStatus
-          });*/
+          });
 
           smartWatchStatus.deviceBattery = battery;
           smartWatchStatus.deviceBatteryVolt = batteryVolt;
           smartWatchStatus.deviceBatteryStatus = batteryStatus;
-          sendStatus("connected");
+          //sendStatus("connected", service);
+          service.invoke('get_status');
           break;
         case 0x03:
           // get steps
           int steps = byteData.getUint16(4);
           smartWatchStatus.deviceSteps = steps;
-          sendStatus("connected");
+          //sendStatus("connected", service);
+          service.invoke('get_status');
           break;
         case 0x04:
           // get harts rate
           int hartRate = byteData.getUint8(2);
           smartWatchStatus.deviceHartrate = hartRate;
-          sendStatus("connected");
+          //sendStatus("connected", service);
+          service.invoke('get_status');
           break;
         default:
-          service.setNotificationInfo(
-              title: "BLE", content: "Data : " + data.toString());
+        /*service.setNotificationInfo(
+              title: "BLE", content: "Data : " + data.toString());*/
       }
     }
   }
 
-  void sendStatus(String status) {
-    FlutterBackgroundService().sendData({
+  void sendStatus(String status, ServiceInstance service) {
+    service.invoke('update', {
       "action": "device_state",
       "state": status,
       "battery": smartWatchStatus.deviceBattery,
@@ -210,10 +214,14 @@ class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
     sendData(0x02, notificationData.toBytes().toBytes());
 
     final service = FlutterBackgroundService();
-    service.setNotificationInfo(
+    /*service.setNotificationInfo(
       title: "Notification",
       content: notificationData.title,
-    );
+    );*/
+    FlutterBackgroundService().invoke('sendNotification', {
+      "title": "Notification",
+      "content": notificationData.title,
+    });
   }
 
   void sendDebugNotification() {

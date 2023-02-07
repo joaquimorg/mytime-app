@@ -19,15 +19,15 @@ Future<void> main() async {
 
   await initializeService();
 
-  final _ble = FlutterReactiveBle();
-  final _scanner = BleScanner(ble: _ble);
+  final ble = FlutterReactiveBle();
+  final scanner = BleScanner(ble: ble);
 
   runApp(
     MultiProvider(
       providers: [
-        Provider.value(value: _scanner),
+        Provider.value(value: scanner),
         StreamProvider<BleScannerState?>(
-          create: (_) => _scanner.state,
+          create: (_) => scanner.state,
           initialData: const BleScannerState(
             discoveredDevices: [],
             scanIsInProgress: false,
@@ -210,7 +210,7 @@ void onStart(ServiceInstance service) async {
   });
 
   service.on('get_status').listen((event) {
-    deviceConnector.sendStatus(connectionState.name);
+    deviceConnector.sendStatus();
   });
 
   service.on('app_list').listen((event) {

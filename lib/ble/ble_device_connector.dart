@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:notifications/notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -21,13 +22,34 @@ class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
   final FlutterReactiveBle _ble;
   final ServiceInstance notificationService;
 
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+
+  DeviceConnectionState connectionState = DeviceConnectionState.disconnected;
+
+  void sendNotification(String? title, String? content) {
+    flutterLocalNotificationsPlugin.show(
+      888,
+      title,
+      content,
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'pinetime40',
+          'PineTime Companion App',
+          icon: 'ic_bg_service_small',
+          ongoing: true,
+        ),
+      ),
+    );
+  }
+
   void _logMessage(String message) {
     /*notificationService
         .invoke('notification', {"title": "BLE log", "content": message});*/
   }
 
   String _deviceId = '00:00:00:00:00:00';
-  int mtuSize = 20;
+  int mtuSize = 200;
 
   SmartWatchStatus smartWatchStatus = SmartWatchStatus();
 
@@ -50,7 +72,7 @@ class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
 
     _deviceId = deviceId;
 
-    _logMessage(' Start connecting to $deviceId');
+    _logMessage('Start connecting to $deviceId');
     _connection = _ble.connectToAdvertisingDevice(
       id: _deviceId,
       prescanDuration: const Duration(seconds: 5),
@@ -58,6 +80,7 @@ class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
       withServices: [Uuid.parse("6E400001-B5A3-F393-E0A9-E50E24DCCA9E")],
     ).listen(
       (update) {
+        connectionState = update.connectionState;
         _logMessage(
             'ConnectionState for device $_deviceId : ${update.connectionState}');
         _deviceConnectionController.add(update);
@@ -83,6 +106,7 @@ class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
         ),
       );
       _deviceId = '00:00:00:00:00:00';
+      connectionState = DeviceConnectionState.disconnected;
     }
   }
 
@@ -119,6 +143,8 @@ class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
           // get version
           // send time
           sendTime();
+          /*sendNotification('Sending time to device',
+              'Synchronizing date and time with device');*/
           break;
         case 0x02:
           // get battery info
@@ -126,12 +152,11 @@ class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
           double batteryVolt = byteData.getFloat32(6);
           int batteryStatus = byteData.getUint8(10);
 
-          /*service.setNotificationInfo(
-              title: "Status", content: "Battery $battery%");*/
-          /*notificationService.invoke('notification', {
-            'title': 'Battery',
-            'content': 'Battery $battery%',
-          });*/
+          if (batteryStatus == 2) {
+            sendNotification("Device status", "Battery is charging");
+          } else {
+            sendNotification("Device status", "Battery $battery%");
+          }
 
           notificationService.invoke('update', {
             'action': 'battery',
@@ -143,19 +168,19 @@ class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
           smartWatchStatus.deviceBattery = battery;
           smartWatchStatus.deviceBatteryVolt = batteryVolt;
           smartWatchStatus.deviceBatteryStatus = batteryStatus;
-          sendStatus('connected');
+          sendStatus();
           break;
         case 0x03:
           // get steps
           int steps = byteData.getUint16(4);
           smartWatchStatus.deviceSteps = steps;
-          sendStatus('connected');
+          sendStatus();
           break;
         case 0x04:
           // get harts rate
           int hartRate = byteData.getUint8(2);
           smartWatchStatus.deviceHartrate = hartRate;
-          sendStatus('connected');
+          sendStatus();
           break;
         default:
         /*service.setNotificationInfo(
@@ -165,10 +190,10 @@ class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
     }
   }
 
-  void sendStatus(String status) {
+  void sendStatus() {
     notificationService.invoke('update', {
       'action': 'device_state',
-      'state': status,
+      'state': connectionState.name,
       'battery': smartWatchStatus.deviceBattery,
       'battery_voltage': smartWatchStatus.deviceBatteryVolt.toStringAsFixed(3),
       'battery_status': smartWatchStatus.deviceBatteryStatus,
@@ -198,6 +223,8 @@ class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
   }
 
   void notification(NotificationEvent event) {
+    if (connectionState != DeviceConnectionState.connected) return;
+
     if (event.packageName == null) {
       return;
     }
@@ -216,11 +243,7 @@ class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
     );
 
     sendData(0x02, notificationData.toBytes().toBytes());
-
-    /*notificationService.invoke('notification', {
-      'title': 'Notification',
-      'content': notificationData.title,
-    });*/
+    sendNotification('New notification', notificationData.title);
   }
 
   void sendDebugNotification() {

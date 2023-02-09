@@ -15,10 +15,11 @@ class MainBottomNavBar extends StatefulWidget {
 
 class _MainBottomNavBarState extends State<MainBottomNavBar> {
   int _selectedIndex = 0;
-  bool permissionLocation = true;
-  bool permissionLocationAlways = true;
-  bool permissionNotification = true;
-  bool permissionNotificationPolicy = true;
+  bool permissionLocation = false;
+  bool permissionLocationAlways = false;
+  bool permissionNotification = false;
+  bool permissionNotificationPolicy = false;
+  bool permissionBattery = false;
 
   @override
   void initState() {
@@ -33,12 +34,14 @@ class _MainBottomNavBarState extends State<MainBottomNavBar> {
     final statusNotificationPolicy =
         await Permission.accessNotificationPolicy.isGranted;
     final statusNotification = await Permission.notification.isGranted;
+    final statusBattery = await Permission.ignoreBatteryOptimizations.isGranted;
 
     setState(() {
       permissionLocation = statusLocation;
       permissionLocationAlways = statuspermissionLocationAlways;
       permissionNotification = statusNotification;
       permissionNotificationPolicy = statusNotificationPolicy;
+      permissionBattery = statusBattery;
     });
     if (permissionLocationAlways) {
       connectToDevice();
@@ -62,7 +65,8 @@ class _MainBottomNavBarState extends State<MainBottomNavBar> {
     if (permissionLocation == false ||
         permissionLocationAlways == false ||
         permissionNotificationPolicy == false ||
-        permissionNotification == false) {
+        permissionNotification == false ||
+        permissionBattery == false) {
       return Scaffold(
         body: Center(
           child: Column(
@@ -82,13 +86,6 @@ class _MainBottomNavBarState extends State<MainBottomNavBar> {
               ElevatedButton(
                   child: const Text('Request permissions'),
                   onPressed: () async {
-                    /*final Map<Permission, PermissionStatus> statuses = await [
-                      Permission.location,
-                      Permission.locationAlways,
-                      Permission.accessNotificationPolicy,
-                      Permission.notification,
-                    ].request();*/
-
                     bool statusPermissionLocation =
                         await Permission.location.request().isGranted;
                     bool statusPermissionLocationAlways =
@@ -99,13 +96,17 @@ class _MainBottomNavBarState extends State<MainBottomNavBar> {
                         .isGranted;
                     bool statusPermissionNotificationPolicy =
                         await Permission.notification.request().isGranted;
-
+                    bool statusPermissionBattery = await Permission
+                        .ignoreBatteryOptimizations
+                        .request()
+                        .isGranted;
                     setState(() {
                       permissionLocation = statusPermissionLocation;
                       permissionLocationAlways = statusPermissionLocationAlways;
                       permissionNotification = statusPermissionNotification;
                       permissionNotificationPolicy =
                           statusPermissionNotificationPolicy;
+                      permissionBattery = statusPermissionBattery;
                     });
                   }),
             ],

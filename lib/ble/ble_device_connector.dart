@@ -152,22 +152,17 @@ class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
           double batteryVolt = byteData.getFloat32(6);
           int batteryStatus = byteData.getUint8(10);
 
-          if (batteryStatus == 2) {
-            sendNotification("Device status", "Battery is charging");
-          } else {
-            sendNotification("Device status", "Battery $battery%");
-          }
-
-          notificationService.invoke('update', {
+          /*notificationService.invoke('update', {
             'action': 'battery',
             'battery': battery,
             'batteryVolt': batteryVolt,
             'batteryStatus': batteryStatus
-          });
+          });*/
 
           smartWatchStatus.deviceBattery = battery;
           smartWatchStatus.deviceBatteryVolt = batteryVolt;
           smartWatchStatus.deviceBatteryStatus = batteryStatus;
+
           sendStatus();
           break;
         case 0x03:
@@ -200,6 +195,14 @@ class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
       'steps': smartWatchStatus.deviceSteps,
       'heart_rate': smartWatchStatus.deviceHartrate,
     });
+
+    if (smartWatchStatus.deviceBatteryStatus == 2) {
+      sendNotification("Device status",
+          "Battery is charging (${smartWatchStatus.deviceBatteryVolt.toStringAsFixed(2)}) / Steps ${smartWatchStatus.deviceSteps} / Heart rate ${smartWatchStatus.deviceHartrate} bpm");
+    } else {
+      sendNotification("Device status",
+          "Battery ${smartWatchStatus.deviceBattery}% (${smartWatchStatus.deviceBatteryVolt.toStringAsFixed(2)}) / Steps ${smartWatchStatus.deviceSteps} / Heart rate ${smartWatchStatus.deviceHartrate} bpm");
+    }
   }
 
   void listenForData() {

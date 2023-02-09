@@ -4,6 +4,9 @@
 
 MY-Time companion app for PineTime smartwatch running MY-Time firmware and PineTime Arduino based on the new nRF52840 board.
 
+https://www.joaquim.org/pinetime-upgrade-board/
+
+
 ## Information
 
 https://github.com/cph-cachet/flutter-plugins

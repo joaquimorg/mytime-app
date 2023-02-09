@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
+import 'package:notifications/notifications.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'ble/ble_device_connector.dart';
@@ -253,5 +254,12 @@ void onStart(ServiceInstance service) async {
       "action": "device_connection_state",
       "state": state.connectionState.name
     });
+
+    Notifications notifications = Notifications();
+    notifications.notificationStream!.listen(
+      (NotificationEvent event) {
+        deviceConnector.notification(event);
+      },
+    );
   });
 }

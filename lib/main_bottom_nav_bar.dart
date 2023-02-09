@@ -15,7 +15,10 @@ class MainBottomNavBar extends StatefulWidget {
 
 class _MainBottomNavBarState extends State<MainBottomNavBar> {
   int _selectedIndex = 0;
-  bool _permissionStatus = true;
+  bool permissionLocation = true;
+  bool permissionLocationAlways = true;
+  bool permissionNotification = true;
+  bool permissionNotificationPolicy = true;
 
   @override
   void initState() {
@@ -24,17 +27,20 @@ class _MainBottomNavBarState extends State<MainBottomNavBar> {
   }
 
   Future<void> _requestPermission() async {
-    //await Permission.bluetoothScan.isGranted;
-    //await Permission.bluetoothConnect.isGranted;
-    //await Permission.location.isGranted;
-    //await Permission.accessNotificationPolicy.isGranted;
-
-    final status = await Permission.location.isGranted;
+    final statusLocation = await Permission.location.isGranted;
+    final statuspermissionLocationAlways =
+        await Permission.locationAlways.isGranted;
+    final statusNotificationPolicy =
+        await Permission.accessNotificationPolicy.isGranted;
+    final statusNotification = await Permission.notification.isGranted;
 
     setState(() {
-      _permissionStatus = status;
+      permissionLocation = statusLocation;
+      permissionLocationAlways = statuspermissionLocationAlways;
+      permissionNotification = statusNotification;
+      permissionNotificationPolicy = statusNotificationPolicy;
     });
-    if (_permissionStatus) {
+    if (permissionLocationAlways) {
       connectToDevice();
     }
   }
@@ -53,7 +59,10 @@ class _MainBottomNavBarState extends State<MainBottomNavBar> {
 
   @override
   Widget build(BuildContext context) {
-    if (_permissionStatus == false) {
+    if (permissionLocation == false ||
+        permissionLocationAlways == false ||
+        permissionNotificationPolicy == false ||
+        permissionNotification == false) {
       return Scaffold(
         body: Center(
           child: Column(
@@ -63,7 +72,7 @@ class _MainBottomNavBarState extends State<MainBottomNavBar> {
               const SizedBox(height: 20),
               Center(
                 child: Text(
-                  "Location permission is not granted.\nPlease grant it, "
+                  "This app needs the\nfollowing permissions to work.\n\nPlease grant it,\n"
                   "otherwise the app won't work.",
                   style: Theme.of(context).textTheme.titleLarge,
                   textAlign: TextAlign.center,
@@ -71,12 +80,32 @@ class _MainBottomNavBarState extends State<MainBottomNavBar> {
               ),
               const SizedBox(height: 20),
               ElevatedButton(
-                  child: const Text('Request permission'),
+                  child: const Text('Request permissions'),
                   onPressed: () async {
-                    final status = await Permission.location.request();
+                    /*final Map<Permission, PermissionStatus> statuses = await [
+                      Permission.location,
+                      Permission.locationAlways,
+                      Permission.accessNotificationPolicy,
+                      Permission.notification,
+                    ].request();*/
+
+                    bool statusPermissionLocation =
+                        await Permission.location.request().isGranted;
+                    bool statusPermissionLocationAlways =
+                        await Permission.locationAlways.request().isGranted;
+                    bool statusPermissionNotification = await Permission
+                        .accessNotificationPolicy
+                        .request()
+                        .isGranted;
+                    bool statusPermissionNotificationPolicy =
+                        await Permission.notification.request().isGranted;
+
                     setState(() {
-                      _permissionStatus =
-                          status == PermissionStatus.granted ? true : false;
+                      permissionLocation = statusPermissionLocation;
+                      permissionLocationAlways = statusPermissionLocationAlways;
+                      permissionNotification = statusPermissionNotification;
+                      permissionNotificationPolicy =
+                          statusPermissionNotificationPolicy;
                     });
                   }),
             ],

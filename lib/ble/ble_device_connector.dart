@@ -573,16 +573,16 @@ class NotificationData {
 
     // subject (30)
     subject = truncateWithEllipsis(30, subject);
-    List<int> _subject = utf8.encode(subject);
-    responseData.addByte(_subject.length + 1);
-    responseData.add(_subject);
+    List<int> subject0 = utf8.encode(subject);
+    responseData.addByte(subject0.length + 1);
+    responseData.add(subject0);
     responseData.addByte(0);
 
     // body (60)
     body = truncateWithEllipsis(60, body);
-    List<int> _body = utf8.encode(body);
-    responseData.addByte(_body.length + 1);
-    responseData.add(_body);
+    List<int> body0 = utf8.encode(body);
+    responseData.addByte(body0.length + 1);
+    responseData.add(body0);
     responseData.addByte(0);
 
     return responseData;

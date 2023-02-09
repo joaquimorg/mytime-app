@@ -100,6 +100,7 @@ class _MainBottomNavBarState extends State<MainBottomNavBar> {
                         .ignoreBatteryOptimizations
                         .request()
                         .isGranted;
+
                     setState(() {
                       permissionLocation = statusPermissionLocation;
                       permissionLocationAlways = statusPermissionLocationAlways;

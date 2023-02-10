@@ -196,12 +196,14 @@ class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
       'heart_rate': smartWatchStatus.deviceHartrate,
     });
 
+    if (connectionState != DeviceConnectionState.connected) return;
+
     if (smartWatchStatus.deviceBatteryStatus == 2) {
       sendNotification("Device status",
-          "Battery is charging (${smartWatchStatus.deviceBatteryVolt.toStringAsFixed(2)}) / Steps ${smartWatchStatus.deviceSteps} / Heart rate ${smartWatchStatus.deviceHartrate} bpm");
+          "Battery is charging (${smartWatchStatus.deviceBatteryVolt.toStringAsFixed(2)}v) / Steps ${smartWatchStatus.deviceSteps} / Heart rate ${smartWatchStatus.deviceHartrate} bpm");
     } else {
       sendNotification("Device status",
-          "Battery ${smartWatchStatus.deviceBattery}% (${smartWatchStatus.deviceBatteryVolt.toStringAsFixed(2)}) / Steps ${smartWatchStatus.deviceSteps} / Heart rate ${smartWatchStatus.deviceHartrate} bpm");
+          "Battery ${smartWatchStatus.deviceBattery}% (${smartWatchStatus.deviceBatteryVolt.toStringAsFixed(2)}v) / Steps ${smartWatchStatus.deviceSteps} / Heart rate ${smartWatchStatus.deviceHartrate} bpm");
     }
   }
 

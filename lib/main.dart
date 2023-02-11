@@ -236,6 +236,7 @@ void onStart(ServiceInstance service) async {
           "Connected to smartwatch.");*/
       deviceConnector.setMTUSize(240);
       deviceConnector.sendTime();
+      deviceConnector.sendStatusRequest();
       deviceConnector.listenForData();
 
       final Future<SharedPreferences> prefs = SharedPreferences.getInstance();

@@ -220,6 +220,10 @@ class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
     });
   }
 
+  void sendStatusRequest() {
+    sendData(0x0C, intToList(0x00));
+  }
+
   void sendTime() {
     var dateTime = DateTime.now();
     dateTime = dateTime.add(Duration(hours: dateTime.timeZoneOffset.inHours));

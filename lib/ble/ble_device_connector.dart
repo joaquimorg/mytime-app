@@ -142,9 +142,10 @@ class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
         case 0x01:
           // get version
           // send time
-          sendTime();
+          //sendTime();
           /*sendNotification('Sending time to device',
               'Synchronizing date and time with device');*/
+          sendStatus();
           break;
         case 0x02:
           // get battery info

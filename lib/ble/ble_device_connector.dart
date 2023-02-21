@@ -245,12 +245,22 @@ class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
 
     NotificationData notificationData = NotificationData(
       packageName: event.packageName,
-      title: event.title,
-      message: event.message,
-      subText: event.subText,
-      ticker: event.ticker,
+      title: event.title
+          ?.replaceAll(RegExp(r'°'), 'º')
+          .replaceAll(String.fromCharCode(0x00A0), ' '),
+      message: event.message
+          ?.replaceAll(RegExp(r'°'), 'º')
+          .replaceAll(String.fromCharCode(0x00A0), ' '),
+      subText: event.subText
+          ?.replaceAll(RegExp(r'°'), 'º')
+          .replaceAll(String.fromCharCode(0x00A0), ' '),
+      ticker: event.ticker
+          ?.replaceAll(RegExp(r'°'), 'º')
+          .replaceAll(String.fromCharCode(0x00A0), ' '),
       timeStamp: event.timeStamp,
     );
+
+    //C2A0
 
     sendData(0x02, notificationData.toBytes().toBytes());
     sendNotification('New notification', notificationData.title);
@@ -258,9 +268,9 @@ class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
 
   void sendDebugNotification() {
     NotificationData notificationData = NotificationData(
-      packageName: "packageName",
-      title: "title",
-      message: "message",
+      packageName: "com.android.email",
+      title: "Exemplo de Notificação enviada via APP",
+      message: "Texto do corpo da notificação enviada via APP MY-Time...",
       subText: "subText",
       ticker: "ticker",
       timeStamp: DateTime.now(),

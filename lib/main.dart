@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:flutter_background_service_android/flutter_background_service_android.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:notifications/notifications.dart';
@@ -67,22 +68,19 @@ Future<void> initializeService() async {
 
   await service.configure(
     androidConfiguration: AndroidConfiguration(
-      // this will be executed when app is in foreground or background in separated isolate
-      onStart: onStart,
-
-      // auto start service
-      autoStart: true,
-      isForegroundMode: true,
-
-      notificationChannelId: 'pinetime40',
-      initialNotificationTitle: 'PineTime Companion App',
-      initialNotificationContent: 'Initializing',
-      foregroundServiceNotificationId: 888,
-    ),
+        // this will be executed when app is in foreground or background in separated isolate
+        onStart: onStart,
+        // auto start service
+        autoStart: true,
+        isForegroundMode: true,
+        notificationChannelId: 'pinetime40',
+        initialNotificationTitle: 'PineTime Companion App',
+        initialNotificationContent: 'Initializing',
+        foregroundServiceNotificationId: 888,
+        autoStartOnBoot: true),
     iosConfiguration: IosConfiguration(
       // auto start service
       autoStart: true,
-
       // this will be executed when app is in foreground in separated isolate
       onForeground: onStart,
     ),
@@ -110,12 +108,24 @@ void sendNotification(
   );
 }
 
+final flutterReactiveBle = FlutterReactiveBle();
+
 @pragma('vm:entry-point')
 void onStart(ServiceInstance service) async {
   //WidgetsFlutterBinding.ensureInitialized();
   DartPluginRegistrant.ensureInitialized();
 
-  final flutterReactiveBle = FlutterReactiveBle();
+  if (service is AndroidServiceInstance) {
+    service.on('setAsForeground').listen((event) async {
+      await service.setAsForegroundService();
+    });
+    service.on('setAsBackground').listen((event) async {
+      await service.setAsBackgroundService();
+    });
+  }
+  service.on('stopService').listen((event) async {
+    await service.stopSelf();
+  });
 
   final BleDeviceConnector deviceConnector =
       BleDeviceConnector(service, ble: flutterReactiveBle);
@@ -155,12 +165,12 @@ void onStart(ServiceInstance service) async {
   });
 
   service.on('stop_service').listen((event) {
-    service.stopSelf();
     if (connectionState == DeviceConnectionState.connected) {
       deviceConnector.disconnect();
       sendNotification(flutterLocalNotificationsPlugin,
           "Background service stopped", "Start service to connect");
     }
+    service.stopSelf();
   });
 
   //service.on('stopService').listen((event) {});
@@ -228,6 +238,13 @@ void onStart(ServiceInstance service) async {
   // bring to foreground
   //service.setForegroundMode(true);
 
+  Notifications notifications = Notifications();
+  notifications.notificationStream!.listen(
+    (NotificationEvent event) {
+      deviceConnector.notification(event);
+    },
+  );
+
   deviceConnector.state.listen((state) {
     connectionState = state.connectionState;
     if (state.connectionState == DeviceConnectionState.connected) {
@@ -252,15 +269,13 @@ void onStart(ServiceInstance service) async {
     }
 
     service.invoke('update', {
-      "action": "device_connection_state",
-      "state": state.connectionState.name
+      "action": "device_state",
+      "state": state.connectionState.name,
+      "battery": 0,
+      "battery_voltage": "0.00",
+      "battery_status": 0,
+      "steps": 0,
+      "heart_rate": 0
     });
-
-    Notifications notifications = Notifications();
-    notifications.notificationStream!.listen(
-      (NotificationEvent event) {
-        deviceConnector.notification(event);
-      },
-    );
   });
 }

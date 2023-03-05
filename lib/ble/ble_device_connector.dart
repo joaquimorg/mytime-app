@@ -270,7 +270,8 @@ class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
     NotificationData notificationData = NotificationData(
       packageName: "com.android.email",
       title: "Exemplo de Notificação enviada via APP",
-      message: "Texto do corpo da notificação enviada via APP MY-Time...",
+      message:
+          "Texto do corpo da notificação enviada via APP MY-Time, é um texto longo para ver o comportamento do scrool !",
       subText: "subText",
       ticker: "ticker",
       timeStamp: DateTime.now(),
@@ -591,15 +592,15 @@ class NotificationData {
     responseData.addByte(timeStamp!.hour); // HOUR_OF_DAY
     responseData.addByte(timeStamp!.minute); // MINUTE
 
-    // subject (30)
-    subject = truncateWithEllipsis(30, subject);
+    // subject (50)
+    subject = truncateWithEllipsis(50, subject);
     List<int> subject0 = utf8.encode(subject);
     responseData.addByte(subject0.length + 1);
     responseData.add(subject0);
     responseData.addByte(0);
 
-    // body (60)
-    body = truncateWithEllipsis(60, body);
+    // body (150)
+    body = truncateWithEllipsis(150, body);
     List<int> body0 = utf8.encode(body);
     responseData.addByte(body0.length + 1);
     responseData.add(body0);
